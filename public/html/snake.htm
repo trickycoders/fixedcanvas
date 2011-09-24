@@ -1,0 +1,212 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <style>
+            body {
+                margin: 0px;
+                padding: 0px;
+            }
+            
+            #myCanvas {
+				padding: 0px;
+				margin: 0px;
+              --  border: 1px solid #9C9898;
+            }
+        </style>
+	<script type='text/javascript' src='/javascripts/jquery-1.4.4.min.js'></script>
+	<script type="text/javascript" src="/nowjs/now.js"></script>
+	<script type='text/javascript' src='/javascripts/kinetic2d-v1.0.0.js'></script>
+        <script>
+	    var isUpdate = true;
+	    var isfinalMoments = false;
+	    var that;
+            function getRandTheta(){
+                return Math.random() * 2 * Math.PI;
+            }
+	    now.serverUpdate = function (headX,headY,angles){
+		if(headX == 0){
+		    snake.headX = 0;
+		}else{
+		    snake.headX = $('#myCanvas').attr("width");
+		}
+		snake.headY = headY;
+		snake.angles = angles;
+		isUpdate =  true;
+	    }
+            
+            function updateSnake(kin, snake){
+                var canvas = kin.getCanvas();
+                var angleVariance = 0.2;
+                
+                var angles = snake.angles;
+                
+                /*
+                 * good numNewSegmentsPerFrame values:
+                 * 60fps -> 1
+                 * 10fps -> 10
+                 *
+                 * for a linear relationship, we can use the equation:
+                 * n = mf + b, where n = numNewSegmentsPerFrame and f = FPS
+                 * solving for m and b, we have:
+                 * n = (-0.18)f + 11.8
+                 */
+                var numNewSegmentsPerFrame = Math.round(-0.18 * kin.getFps() + 11.8);
+                
+                for (var n = 0; n < numNewSegmentsPerFrame; n++) {
+                    // create first angle if no angles
+                    if (angles.length == 0) {
+                        snake.headX = canvas.width / 2;
+                        snake.headY = canvas.height / 2;
+                        angles.push(getRandTheta());
+                    }
+                    
+                    var headX = snake.headX;
+                    var headY = snake.headY;
+                    var headAngle = angles[angles.length - 1];
+                    
+                    // create new head angle
+                    var dist = kin.getTimeInterval() / (12 * numNewSegmentsPerFrame);
+                    // increase new head angle by an amount equal to
+                    // -0.1 to 0.1
+                    var newHeadAngle = headAngle + ((angleVariance / 2) - Math.random() * angleVariance);
+                    var newHeadX = headX + dist * Math.cos(newHeadAngle);
+                    var newHeadY = headY + dist * Math.sin(newHeadAngle);
+                    
+                    // change direction if collision occurs
+                    if (newHeadY >= canvas.height || newHeadY <= 0) {
+                         newHeadAngle += Math.PI / 2;
+                         newHeadX = headX + dist * Math.cos(newHeadAngle);
+                         newHeadY = headY + dist * Math.sin(newHeadAngle);
+                    }
+                    
+                    if (newHeadX >= canvas.width && !isfinalMoments) {
+			now.headY = headY;
+			now.headX = 0;
+  			now.angles = angles;
+                        now.reachBoundry(); 
+			//newHeadAngle += Math.PI / 2;
+                         newHeadX = headX + dist * Math.cos(newHeadAngle);
+                         newHeadY = headY + dist * Math.sin(newHeadAngle);
+			 isfinalMoments = true;
+			 setTimeout(function(){
+				that.clear();
+				isUpdate =  false;
+   				isfinalMoments = false;
+			 },300)	
+                    }					
+					
+                    if (newHeadX <= 0 && !isfinalMoments) {
+                         //newHeadAngle += Math.PI / 2;
+			 now.headY = headY;
+   			 now.headX = 1;
+  			 now.angles = angles;
+ 			 now.reachBoundry();			 
+                         newHeadX = headX + dist * Math.cos(newHeadAngle);
+                         newHeadY = headY + dist * Math.sin(newHeadAngle);
+			 isfinalMoments = true;
+			 setTimeout(function(){
+				that.clear();
+				isUpdate =  false;
+   				isfinalMoments = false;
+			 },300)	
+
+                    }					
+					
+                    snake.headX = newHeadX;
+                    snake.headY = newHeadY;
+                    angles.push(newHeadAngle);
+                    // remove tail angle
+                    if (angles.length > 60) {
+                        angles.shift();
+                    }
+                }
+                
+            }
+            
+            function drawSnake(kin, snake){
+                var segmentLength = 1; // px
+                var context = kin.getContext();
+                
+                var angles = snake.angles;
+                context.beginPath();
+                context.moveTo(snake.headX, snake.headY);
+                
+                var x = snake.headX;
+                var y = snake.headY;
+                
+                // start with the head and end with the tail
+                for (var n = angles.length - 1; n >= 0; n--) {
+                    var angle = angles[n];
+                    
+                    x -= segmentLength * Math.cos(angle);
+                    y -= segmentLength * Math.sin(angle);
+                    context.lineTo(x, y);
+                }
+                
+                context.lineWidth = 15;
+                context.lineCap = "round";
+                context.lineJoin = "round";
+                context.strokeStyle = snake.color;
+                context.stroke();
+                
+            }
+            
+            window.onload = function(){
+                var kin = new Kinetic_2d("myCanvas");
+                
+                snake = {
+                    headX: 0,
+                    headY: 0,
+                    angles: [],
+                    color: "green"
+                };
+                var timer;
+                kin.setDrawStage(function(){
+                    // clear
+		    that = this;
+				   // update
+                    if(isUpdate){
+			updateSnake(that, snake);
+
+			that.clear();
+                       drawSnake(that, snake);
+		    }
+                });
+                
+                kin.startAnimation();
+            };
+        </script>
+    </head>
+    <body onmousedown="return false;">
+        <canvas id="myCanvas" width="600"></canvas>
+		<script>
+		var initialWidth = 0;
+		var initialHeight = 0;
+		function updateScreenRes(){
+/*			$("#screen_width").html(screen.width);
+			$("#screen_height").html(screen.height);
+			$("#popup_width").html(window.outerWidth);
+			$("#popup_height").html(window.outerHeight);
+			$("#popup_top").html(window.screenY);
+			$("#popup_left").html(window.screenX);
+	*/		
+			if(initialWidth != window.innerWidth){
+				initialWidth = window.innerWidth;
+				$("#myCanvas").attr("width",initialWidth);
+				
+			}
+			
+			if(initialHeight != (window.innerHeight - 5)){
+				initialHeight = window.innerHeight;
+				$("#myCanvas").attr("height",(initialHeight - 5));			
+			}
+			
+
+			
+//			$("#staticCenter").attr("style","left:" + (blockCenter.left - window.screenX) + "px;top:" + (blockCenter.top - window.screenY + browserYOffset) + "px");
+			setTimeout(updateScreenRes,5000); 
+		}
+		setTimeout(updateScreenRes,5000);
+		</script>
+    </body>
+</html>
