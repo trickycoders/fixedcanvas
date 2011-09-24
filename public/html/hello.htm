@@ -1,0 +1,60 @@
+<html>
+<head>
+<script type='text/javascript' src='/javascripts/jquery-1.4.4.min.js'></script>
+<style>
+	body{
+		overflow:hidden;
+	}
+	.staticCenter{
+		position:absolute;
+		background:red;
+		width:200px;
+		height:200px;
+	}
+	
+</style>
+</head>
+<body>
+<div><strong>Screen Width: </strong><span id="screen_width"></span></div>
+<div><strong>Screen Height: </strong><span id="screen_height"></span></div>
+<div><strong>Current Width: </strong><span id="popup_width"></span></div>
+<div><strong>Current Height: </strong><span id="popup_height"></span></div>
+<div><strong>Current Width: </strong><span id="popup_top"></span></div>
+<div><strong>Offset Left: </strong><span id="popup_left"></span></div>
+
+<div class="staticCenter" id="staticCenter"></div>
+
+<script>
+
+
+setTimeout(updateScreenRes,50);
+
+var win = window.open('','_self','name','height=255,width=250, toolbar=no,directories=no,status=no,menubar=no, scrollbars=no,resizable=no');
+var browserYOffset = 0;
+if(navigator.userAgent.search("Chrome") > 0){
+	browserYOffset = -10;
+}	
+setTimeout(function(){
+	win.moveTo(50,50);
+},2000);
+
+var blockCenter = {
+	"left": (screen.width/2) - 100,
+	"top": (screen.height/2) - 100,
+}
+function updateScreenRes(){
+	$("#screen_width").html(screen.width);
+	$("#screen_height").html(screen.height);
+	$("#popup_width").html(window.outerWidth);
+	$("#popup_height").html(window.outerHeight);
+	$("#popup_top").html(window.screenY);
+	$("#popup_left").html(window.screenX);
+	
+	
+	$("#staticCenter").attr("style","left:" + (blockCenter.left - window.screenX) + "px;top:" + (blockCenter.top - window.screenY + browserYOffset) + "px");
+	setTimeout(updateScreenRes,50); 
+}
+
+</script>
+</body>
+</html>
