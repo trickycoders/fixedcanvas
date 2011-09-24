@@ -35,12 +35,52 @@ app.get('/', function(req, res){
   });
 });
 
-app.listen(3000);
+app.listen(process.env.app_port||3000);
+
 var everyone = nowjs.initialize(app);
 everyone.now.logStuff = function(msg){
     console.log(msg);
     req.flash('info', 'Message Send');
 }
+everyone.on('join', function () {
+	console.log("Joining User " + this.user.clientId);
+//  otherGroup.addUser(this.user.clientId);
+});
+
+function randOrd(){
+	return (Math.round(Math.random())-0.5); 
+}
+function removeByElement(arrayName,arrayElement)
+ {
+  for(var i=0; i<arrayName.length;i++ ){ 
+	  if(arrayName[i]===arrayElement)
+	  arrayName.splice(i,1); 
+  } 
+}
+
+everyone.on('leave', function () {
+  console.log("Leaving User " + this.user.clientId);
+});
+
+everyone.now.reachBoundry = function(){
+   var activeUser = this.user.clientId;
+   var headY = this.now.headY;
+   var headX = this.now.headX;
+   var angles = this.now.angles;
+   everyone.getUsers(function (users) {
+	//users.sort(randOrd);
+        for (var i = 0; i < users.length; i++){
+		if(activeUser != users[i]){
+			console.log("New User " + users[i]);
+			nowjs.getClient(users[i], function() {
+			    this.now.serverUpdate(headX,headY,angles);
+			});
+		}
+
+	}
+   });
+//  everyone.now.receiveMessage(this.now.name, message);
+};
 
 app.get('/pushdata', function(req, res){
 	var posX = req.param("posX","80");
